@@ -1,0 +1,2680 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
+    <meta name="description" content="Sistema de gestão de pagamentos do Grupo Euromilhões">
+    <meta name="author" content="Sistema de Gestão">
+    <title>Gestão de Pagamentos - Grupo Euromilhões</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <meta name="theme-color" content="#667eea">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        /* Header */
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        header h1 {
+            font-size: 24px;
+        }
+        
+        header .info {
+            text-align: right;
+            font-size: 13px;
+        }
+        
+        /* Abas */
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #ddd;
+        }
+        
+        .tab-button {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+            text-align: center;
+        }
+        
+        .tab-button.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            background: white;
+        }
+        
+        .tab-button:hover {
+            background: white;
+        }
+        
+        /* Conteúdo */
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Notificação */
+        .notificacao {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #00b894;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            animation: slideIn 0.3s ease-out, slideOut 0.3s ease-out 3.7s forwards;
+            z-index: 1000;
+            font-weight: 600;
+        }
+        
+        .notificacao.success {
+            background: #28a745;
+        }
+        
+        .notificacao.warning {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        .notificacao.error {
+            background: #dc3545;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(400px); opacity: 0; }
+        }
+        
+        /* Dashboard */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .dashboard-charts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .member-card {
+            background: white;
+            border: 1px solid rgba(102, 126, 234, 0.12);
+            border-radius: 18px;
+            padding: 20px;
+            transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+            cursor: pointer;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.05);
+        }
+        
+        .member-card:hover,
+        .member-card:focus-visible {
+            border-color: #667eea;
+            transform: translateY(-4px);
+            box-shadow: 0 16px 35px rgba(102, 126, 234, 0.15);
+        }
+        
+        .member-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        
+        .member-card .status {
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+            margin-bottom: 10px;
+        }
+        
+        .status.completo {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .status.pendente {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .status.parcial {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .member-info {
+            font-size: 13px;
+            color: #666;
+            margin: 8px 0;
+        }
+        
+        .member-progress {
+            width: 100%;
+            height: 20px;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        
+        /* Formulário */
+        .form-section {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        
+        .form-section h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 16px;
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .form-group label {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+        
+        .form-group input, .form-group select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .semanas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 8px;
+            max-height: 200px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            background: white;
+        }
+        
+        .semana-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+        }
+        
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #5568d3;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #218838;
+        }
+        
+        /* Tabela */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .table-actions {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .table-actions button {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        
+        /* Detalhes */
+        .details-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        
+        .details-header h2 {
+            color: #333;
+            font-size: 24px;
+        }
+        
+        .voltar-btn {
+            padding: 8px 15px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        
+        .voltar-btn:hover {
+            background: #5a6268;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-card h4 {
+            font-size: 12px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+        
+        .stat-card .valor {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .semana-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+        }
+        
+        .semana-item.pago {
+            background: #d4edda;
+            border-color: #c3e6cb;
+        }
+        
+        /* Novo: Valor em Falta */
+        .valor-falta {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 5px;
+            font-weight: 600;
+            margin-top: 10px;
+            text-align: center;
+            font-size: 16px;
+        }
+        
+        /* Novo: Seção Financeira */
+        .financeiro-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .financeiro-card {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .financeiro-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 16px;
+        }
+        
+        .resumo-financeiro {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .card-resumo {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .card-resumo h4 {
+            font-size: 13px;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+        
+        .card-resumo .valor {
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        .tabela-transacoes {
+            margin-top: 20px;
+        }
+        
+        .transacao-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            border: 1px solid #eee;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+        }
+        
+        .transacao-item.premio {
+            border-left: 4px solid #28a745;
+        }
+        
+        .transacao-item.gasto {
+            border-left: 4px solid #dc3545;
+        }
+        
+        .transacao-item.saldo {
+            border-left: 4px solid #667eea;
+        }
+        
+        .transacao-info {
+            flex: 1;
+        }
+        
+        .transacao-info strong {
+            display: block;
+            color: #333;
+        }
+        
+        .transacao-info small {
+            color: #999;
+            display: block;
+            margin-top: 3px;
+        }
+        
+        .transacao-valor {
+            font-weight: bold;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+        
+        .transacao-valor.positivo {
+            color: #28a745;
+        }
+        
+        .transacao-valor.negativo {
+            color: #dc3545;
+        }
+        
+        /* Gráficos */
+        .chart-container {
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+            border: 1px solid rgba(102, 126, 234, 0.16);
+            border-radius: 18px;
+            padding: 18px;
+            margin-bottom: 15px;
+            min-height: 220px;
+            box-shadow: 0 12px 30px rgba(102, 126, 234, 0.06);
+            transition: transform 0.25s ease, box-shadow 0.25s ease;
+        }
+        
+        .chart-container:hover,
+        .chart-container:focus-within {
+            transform: translateY(-3px);
+            box-shadow: 0 18px 40px rgba(102, 126, 234, 0.12);
+        }
+        
+        .chart-container h3 {
+            color: #1f3c88;
+            margin-bottom: 14px;
+            font-size: 16px;
+            letter-spacing: 0.02em;
+        }
+        
+        .chart-container canvas {
+            width: 100% !important;
+            height: auto !important;
+            min-height: 140px;
+        }
+        
+        /* Tooltips */
+        [title] {
+            position: relative;
+        }
+        
+        [title]:hover::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+        }
+        
+        /* Loading */
+        .loading {
+            opacity: 0.6;
+            pointer-events: none;
+        }
+        
+        .loading::after {
+            content: '⏳';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+        }
+        
+        /* Paginação */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            border-radius: 4px;
+        }
+        
+        .pagination button.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        /* ===== ACESSIBILIDADE ===== */
+        /* Skip links */
+        .skip-link {
+            position: absolute;
+            top: -40px;
+            left: 6px;
+            background: #667eea;
+            color: white;
+            padding: 8px;
+            text-decoration: none;
+            border-radius: 4px;
+            z-index: 1000;
+        }
+        
+        .skip-link:focus {
+            top: 6px;
+        }
+        
+        /* Foco visível */
+        *:focus {
+            outline: 2px solid #667eea;
+            outline-offset: 2px;
+        }
+        
+        /* Botões acessíveis */
+        button, .btn-primary, .btn-secondary, .btn-danger, .btn-success {
+            min-height: 44px;
+            min-width: 44px;
+        }
+        
+        /* Contraste melhorado */
+        .status.completo {
+            background: #28a745 !important;
+            color: white !important;
+        }
+        
+        .status.parcial {
+            background: #ffc107 !important;
+            color: #333 !important;
+        }
+        
+        .status.pendente {
+            background: #dc3545 !important;
+            color: white !important;
+        }
+        
+        /* ===== MOBILE & RESPONSIVIDADE ===== */
+        @media (max-width: 768px) {
+            .container {
+                margin: 0;
+                box-shadow: none;
+            }
+            
+            header {
+                flex-direction: column;
+                text-align: center;
+                padding: 15px;
+            }
+            
+            header h1 {
+                font-size: 20px;
+                margin-bottom: 10px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab-button {
+                padding: 12px;
+                font-size: 16px; /* Previne zoom no iOS */
+            }
+            
+            .tab-content {
+                padding: 15px;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .member-card {
+                padding: 15px;
+            }
+            
+            .financeiro-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .financeiro-card {
+                padding: 20px;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            table {
+                min-width: 600px;
+            }
+            
+            .chart-container {
+                padding: 10px;
+                max-width: 100%;
+            }
+            
+            .pagination {
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            
+            .pagination button {
+                padding: 10px 15px;
+                font-size: 16px;
+            }
+            
+            .notificacao {
+                left: 10px;
+                right: 10px;
+                top: 10px;
+                text-align: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .tab-content {
+                padding: 10px;
+            }
+            
+            .member-card h3 {
+                font-size: 18px;
+            }
+            
+            .financeiro-card h3 {
+                font-size: 18px;
+            }
+            
+            .btn-primary, .btn-secondary, .btn-danger, .btn-success {
+                width: 100%;
+                margin-bottom: 10px;
+            }
+            
+            .form-actions {
+                flex-direction: column;
+            }
+            
+            .card-resumo {
+                padding: 15px;
+                margin-bottom: 10px;
+            }
+            
+            .valor {
+                font-size: 20px;
+            }
+        }
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            .container {
+                border: 2px solid black;
+            }
+            
+            .tab-button {
+                border: 1px solid black;
+            }
+            
+            .member-card, .financeiro-card {
+                border: 2px solid black;
+            }
+        }
+        
+        /* Reduced motion */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        
+        /* Screen reader only */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Skip Links para Acessibilidade -->
+    <a href="#main-content" class="skip-link">Saltar para conteúdo principal</a>
+    <a href="#navigation" class="skip-link">Saltar para navegação</a>
+    
+    <div class="container">
+        <!-- Header -->
+        <header role="banner">
+            <div>
+                <h1>💰 Gestão de Pagamentos - Grupo</h1>
+            </div>
+            <div class="info" role="status" aria-live="polite">
+                <div>Total Membros: <strong id="totalMembros" aria-label="Número total de membros">0</strong></div>
+                <div>Ano: <strong id="anoAtual" aria-label="Ano atual">2026</strong></div>
+            </div>
+        </header>
+        
+        <!-- Abas -->
+        <nav id="navigation" role="navigation" aria-label="Navegação principal">
+            <div class="tabs" role="tablist" aria-label="Abas do sistema">
+                <button class="tab-button active" 
+                        onclick="trocarAba('dashboard')" 
+                        role="tab" 
+                        aria-selected="true" 
+                        aria-controls="dashboard"
+                        id="tab-dashboard">📊 Dashboard</button>
+                <button class="tab-button" 
+                        onclick="trocarAba('membros')" 
+                        role="tab" 
+                        aria-selected="false" 
+                        aria-controls="membros"
+                        id="tab-membros">👥 Gestão de Membros</button>
+                <button class="tab-button" 
+                        onclick="trocarAba('detalhes')" 
+                        role="tab" 
+                        aria-selected="false" 
+                        aria-controls="detalhes"
+                        id="tab-detalhes">📋 Detalhes de Membro</button>
+                <button class="tab-button" 
+                        onclick="trocarAba('financeiro')" 
+                        role="tab" 
+                        aria-selected="false" 
+                        aria-controls="financeiro"
+                        id="tab-financeiro">💰 Financeiro</button>
+            </div>
+        </nav>
+        
+        <!-- Conteúdo Principal -->
+        <main id="main-content" role="main">
+        
+        <!-- Dashboard -->
+        <div id="dashboard" class="tab-content active" role="tabpanel" aria-labelledby="tab-dashboard" aria-hidden="false" tabindex="-1">
+            <!-- Gráficos -->
+            <h2 style="margin-bottom: 20px; color: #333;">📈 Relatórios e Visualizações</h2>
+            <div class="dashboard-charts">
+                <div class="chart-container" role="region" aria-label="Gráfico de progresso de pagamentos">
+                    <h3>Progresso de Pagamentos por Membro</h3>
+                    <canvas id="chartProgresso" width="300" height="150" role="img" aria-label="Gráfico de barras mostrando progresso de pagamentos"></canvas>
+                </div>
+                
+                <div class="chart-container" role="region" aria-label="Gráfico de distribuição de gastos">
+                    <h3>Distribuição de Gastos por Categoria</h3>
+                    <canvas id="chartGastos" width="300" height="150" role="img" aria-label="Gráfico circular mostrando distribuição de gastos por categoria"></canvas>
+                </div>
+                
+                <div class="chart-container" role="region" aria-label="Gráfico de evolução do caixa">
+                    <h3>Evolução do Caixa (Últimos 12 Meses)</h3>
+                    <canvas id="chartCaixa" width="300" height="150" role="img" aria-label="Gráfico de linha mostrando evolução do saldo em caixa nos últimos 12 meses"></canvas>
+                </div>
+            </div>
+            
+            <h2 style="margin: 40px 0 20px; color: #333;">Resumo de Membros</h2>
+            <div class="dashboard-grid" id="dashboardGrid" role="region" aria-label="Grid de membros"></div>
+        </div>
+        
+        <!-- Gestão de Membros -->
+        <div id="membros" class="tab-content" role="tabpanel" aria-labelledby="tab-membros" aria-hidden="true" tabindex="-1">
+            <div class="form-section" role="region" aria-labelledby="titulo-adicionar-membro">
+                <h2 id="titulo-adicionar-membro">➕ Adicionar Novo Membro</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="novoNome">Nome</label>
+                        <input type="text" id="novoNome" placeholder="Nome do membro" aria-describedby="nome-help" required>
+                        <small id="nome-help" class="sr-only">Digite o nome completo do novo membro</small>
+                    </div>
+                    <div class="form-group">
+                        <label for="novoEmail">Email (opcional)</label>
+                        <input type="email" id="novoEmail" placeholder="email@exemplo.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="novoValor">Valor Semanal (€)</label>
+                        <input type="number" id="novoValor" step="0.01" placeholder="0.00" aria-describedby="valor-help" required min="0">
+                        <small id="valor-help" class="sr-only">Valor em euros que o membro paga semanalmente</small>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button class="btn-primary" onclick="adicionarMembro()" aria-describedby="adicionar-help">➕ Adicionar</button>
+                    <small id="adicionar-help" class="sr-only">Botão para adicionar o novo membro ao sistema</small>
+                </div>
+            </div>
+            
+            <h2 style="margin: 30px 0 20px; color: #333;">Lista de Membros</h2>
+            <div class="table-responsive" role="region" aria-labelledby="titulo-lista-membros" aria-live="polite">
+                <table id="titulo-lista-membros" role="table" aria-label="Tabela de membros cadastrados">
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Valor Semanal</th>
+                        <th>Até Semana</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tabelaMembros"></tbody>
+            </table>
+        </div>
+        </div>
+        
+        <!-- Detalhes de Membro -->
+        <div id="detalhes" class="tab-content" role="tabpanel" aria-labelledby="tab-detalhes" aria-hidden="true" tabindex="-1">
+            <div id="selectorMembro" class="form-section">
+                <h2>Selecionar Membro</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Membro</label>
+                        <select id="selectMembro" onchange="carregarDetalhesMembro()">
+                            <option value="">Escolha um membro...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="detalhesMembro" style="display: none;">
+                <div class="details-header">
+                    <h2 id="nomeMembroDetalhe"></h2>
+                    <button class="voltar-btn" onclick="limparDetalhes()">Voltar</button>
+                </div>
+                
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4>Até Semana</h4>
+                        <div class="valor" id="ateSemanaStat">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Semanas Pagas</h4>
+                        <div class="valor" id="semanasPagasStat">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Semanas Pendentes</h4>
+                        <div class="valor" id="semanasPendentesStat">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Progresso</h4>
+                        <div class="valor" id="progressoStat">0%</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Valor Pago</h4>
+                        <div class="valor" id="valorPagoStat">€0.00</div>
+                    </div>
+                    <div class="stat-card">
+                        <h4>Valor em Falta</h4>
+                        <div class="valor" id="valorFaltaStat">€0.00</div>
+                    </div>
+                </div>
+                
+                <div class="form-section">
+                    <h2>Gestão de Pagamentos</h2>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="pagamentoMultiplo">
+                                <input type="checkbox" id="pagamentoMultiplo" onchange="togglePagamentoMultiplo()"> Pagamento múltiplo (valor total)
+                            </label>
+                        </div>
+                        <div class="form-group" id="semanaGroup">
+                            <label>Semana</label>
+                            <input type="number" id="semanaInput" min="1" max="52" placeholder="Número da semana">
+                        </div>
+                        <div class="form-group">
+                            <label>Valor (€)</label>
+                            <input type="number" id="valorInput" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label>Data Pagamento</label>
+                            <input type="text" id="dataPagamentoInput" placeholder="DD/MM/YYYY">
+                        </div>
+                        <div class="form-group">
+                            <label>Observações</label>
+                            <input type="text" id="observacoesInput" placeholder="Notas...">
+                        </div>
+                    </div>
+                    <div id="semanasMultiplas" style="display: none; margin-bottom: 15px;">
+                        <h4>Selecionar semanas a pagar:</h4>
+                        <div id="semanasCheckboxes" class="semanas-grid"></div>
+                        <p id="semanasInfo" style="color: #666; font-size: 13px; margin-top: 10px;"></p>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-success" onclick="adicionarPagamentoMembro()">✓ Marcar como Pago</button>
+                    </div>
+                </div>
+                
+                <h3 style="color: #333; margin: 30px 0 15px;">Histórico de Pagamentos</h3>
+                <div id="historicoMembro"></div>
+            </div>
+        </div>
+        
+        <!-- Financeiro -->
+        <div id="financeiro" class="tab-content" role="tabpanel" aria-labelledby="tab-financeiro" aria-hidden="true" tabindex="-1">
+            <h2 style="margin-bottom: 20px; color: #333;">Gestão Financeira</h2>
+            <div style="display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-bottom: 10px;">
+                <button class="btn-primary" onclick="exportarExcel()">⬇️ Exportar tudo para Excel</button>
+            <button class="btn-secondary" onclick="importarExcel()">📥 Importar Excel</button>
+            <button class="btn-secondary" onclick="backupSemanal()">💾 Backup Semanal</button>
+            <input type="file" id="importFileInput" accept=".xls,.xlsx,.csv" style="display:none" onchange="handleImportFile(event)">
+            </div>
+            <p style="color: #555; font-size: 13px; margin-bottom: 15px; max-width: 800px;">
+                Backup semanal recomendado às terças-feiras. Ao gerar, salve o ficheiro na pasta <strong>transferencias</strong>.
+            </p>
+            
+            <!-- Resumo Financeiro -->
+            <div class="resumo-financeiro" id="resumoFinanceiro">
+                <div class="card-resumo">
+                    <h4>Total em Caixa</h4>
+                    <div class="valor" id="totalCaixa">€0.00</div>
+                </div>
+                <div class="card-resumo" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%);">
+                    <h4>Total Prémios</h4>
+                    <div class="valor" id="totalPremios">€0.00</div>
+                </div>
+                <div class="card-resumo" style="background: linear-gradient(135deg, #dc3545 0%, #e74c3c 100%);">
+                    <h4>Total Gastos</h4>
+                    <div class="valor" id="totalGastos">€0.00</div>
+                </div>
+                <div class="card-resumo" style="background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);">
+                    <h4>Saldo Total</h4>
+                    <div class="valor" id="saldoTotal">€0.00</div>
+                </div>
+            </div>
+            
+            <!-- Formulários -->
+            <div class="financeiro-grid">
+                <!-- Prémios -->
+                <div class="financeiro-card">
+                    <h3>🏆 Registar Prémio</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Valor (€)</label>
+                            <input type="number" id="premioValor" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label>Data</label>
+                            <input type="text" id="premioData" placeholder="DD/MM/YYYY">
+                        </div>
+                        <div class="form-group">
+                            <label>Descrição</label>
+                            <input type="text" id="premioDescricao" placeholder="Ex: Sorteio da semana 15">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-success" onclick="adicionarPremio()">➕ Adicionar Prémio</button>
+                    </div>
+                </div>
+                
+                <!-- Gastos -->
+                <div class="financeiro-card">
+                    <h3>💸 Registar Gasto</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Valor (€)</label>
+                            <input type="number" id="gastoValor" step="0.01" placeholder="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label>Data</label>
+                            <input type="text" id="gastoData" placeholder="DD/MM/YYYY">
+                        </div>
+                        <div class="form-group">
+                            <label>Categoria</label>
+                            <select id="gastoCategoria">
+                                <option value="">Escolha uma categoria...</option>
+                                <option value="Gasto de Registo">Gasto de Registo</option>
+                                <option value="Gasto Diverso">Gasto Diverso</option>
+                                <option value="Aposta">Aposta</option>
+                                <option value="Administrativo">Custo Administrativo</option>
+                                <option value="Outro">Outro</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Descrição</label>
+                            <input type="text" id="gastoDescricao" placeholder="Ex: Números da semana">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-danger" onclick="adicionarGasto()">➕ Adicionar Gasto</button>
+                    </div>
+                </div>
+                
+                <!-- Saldo -->
+                <div class="financeiro-card">
+                    <h3>🏦 Dinheiro em Caixa</h3>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Saldo Atual (€)</label>
+                            <input type="number" id="saldoAtual" step="0.01" placeholder="0.00" value="0.00">
+                        </div>
+                        <div class="form-group">
+                            <label>Data da Atualização</label>
+                            <input type="text" id="saldoData" placeholder="DD/MM/YYYY">
+                        </div>
+                        <div class="form-group">
+                            <label>Notas</label>
+                            <input type="text" id="saldoNotas" placeholder="Observações...">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button class="btn-primary" onclick="atualizarSaldo()">✓ Atualizar Saldo</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Histórico de Transações -->
+            <h3 style="color: #333; margin: 30px 0 15px;">Histórico de Transações</h3>
+            <div class="tabela-transacoes" id="historicaTransacoes"></div>
+
+            <h3 style="color: #333; margin: 30px 0 15px;">Detalhes de Gastos por Categoria</h3>
+            <p style="color: #555; margin: 0 0 15px;">Busca e filtro estão acima: use a categoria e a pesquisa por texto para encontrar custos específicos.</p>
+            <div class="form-grid" style="gap: 15px; margin-bottom: 20px; max-width: 900px; align-items: end;">
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <select id="filtroCategoria" onchange="atualizarGastosPorCategoria()">
+                        <option value="">Todas as categorias</option>
+                        <option value="Gasto de Registo">Gasto de Registo</option>
+                        <option value="Gasto Diverso">Gasto Diverso</option>
+                        <option value="Aposta">Aposta</option>
+                        <option value="Administrativo">Custo Administrativo</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Pesquisar custos</label>
+                    <input type="search" id="filtroCustos" placeholder="Pesquisar descrição ou categoria" oninput="atualizarGastosPorCategoria()">
+                </div>
+                <div class="form-group" style="margin-top: 22px; display: flex; align-items: center; gap: 10px;">
+                    <button class="btn-secondary" style="width: 100%;" onclick="limparFiltrosCustos()">Limpar filtros</button>
+                    <div id="resumoFiltroCustos" style="font-size: 13px; color: #333; display: flex; flex-direction: column; gap: 2px;">
+                        <span id="totalGeralCustos">Total geral: €0.00</span>
+                        <span id="totalFiltradoCustos">Total filtrado: €0.00</span>
+                    </div>
+                </div>
+            </div>
+            <div id="gastosPorCategoria" class="tabela-transacoes"></div>
+
+            <h3 style="color: #333; margin: 30px 0 15px;">Detalhes de Prémios</h3>
+            <p style="color: #555; margin: 0 0 15px;">Use o filtro abaixo para pesquisar prémios por descrição ou data.</p>
+            <div class="form-grid" style="gap: 15px; margin-bottom: 20px; max-width: 900px; align-items: end;">
+                <div class="form-group">
+                    <label>Pesquisar prémios</label>
+                    <input type="search" id="filtroPremios" placeholder="Pesquisar descrição ou data" oninput="atualizarPremiosDetalhes()">
+                </div>
+                <div class="form-group" style="margin-top: 22px; display: flex; align-items: center; gap: 10px;">
+                    <button class="btn-secondary" style="width: 100%;" onclick="limparFiltrosPremios()">Limpar filtros</button>
+                    <div id="resumoFiltroPremios" style="font-size: 13px; color: #333; display: flex; flex-direction: column; gap: 2px;">
+                        <span id="totalGeralPremios">Total geral: €0.00</span>
+                        <span id="totalFiltradoPremios">Total filtrado: €0.00</span>
+                    </div>
+                </div>
+            </div>
+            <div id="premiosDetalhes" class="tabela-transacoes"></div>
+        </div>
+        </main>
+    </div>
+
+    <script>
+        let membros = JSON.parse(localStorage.getItem('membros')) || [];
+        let ano = new Date().getFullYear();
+
+        function formatarData(dataInput) {
+            if (!dataInput) return '';
+            // Se já estiver no formato DD/MM/YYYY, retorna tal e qual
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(dataInput)) return dataInput;
+            // Tenta criar Date a partir de ISO ou string reconhecível
+            const d = new Date(dataInput);
+            if (!isNaN(d)) {
+                const dia = String(d.getDate()).padStart(2, '0');
+                const mes = String(d.getMonth() + 1).padStart(2, '0');
+                const ano = d.getFullYear();
+                return `${dia}/${mes}/${ano}`;
+            }
+            // Se falhar, tenta detectar formato DD/MM/YYYY e devolver
+            const parts = String(dataInput).split('/');
+            if (parts.length === 3) {
+                const [dd, mm, yyyy] = parts;
+                if (/^\d{2}$/.test(dd) && /^\d{2}$/.test(mm) && /^\d{4}$/.test(yyyy)) {
+                    return `${dd}/${mm}/${yyyy}`;
+                }
+            }
+            return String(dataInput);
+        }
+
+        function parseDataToISO(dataStr) {
+            if (!dataStr) return '';
+            const s = String(dataStr).trim();
+            // DD/MM/YYYY
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(s)) {
+                const [dd, mm, yyyy] = s.split('/');
+                return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+            }
+            // YYYY-MM-DD or full ISO
+            if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.split('T')[0];
+            // Tenta parse com Date
+            const d = new Date(s);
+            if (!isNaN(d)) return d.toISOString().split('T')[0];
+            return s;
+        }
+
+        function normalizeToISO(dateStr) {
+            // Usado na importação: tenta normalizar várias formas para YYYY-MM-DD
+            return parseDataToISO(dateStr) || '';
+        }
+
+        function obterValorPago(membro) {
+            return Object.values(membro.pagamentos).reduce((sum, pagamento) => {
+                if (!pagamento || pagamento.status !== 'pago') return sum;
+                return sum + (parseFloat(pagamento.valor) || membro.valorSemanal);
+            }, 0);
+        }
+
+        function obterValorEmFalta(membro) {
+            const totalPago = obterValorPago(membro);
+            const totalEsperado = 52 * membro.valorSemanal;
+            return Math.max(totalEsperado - totalPago, 0);
+        }
+
+        function getFinanceiro() {
+            return JSON.parse(localStorage.getItem('financeiro')) || {
+                premios: [],
+                gastos: [],
+                caixa: { valor: 0, data: '', notas: '' }
+            };
+        }
+
+        function guardarFinanceiro(financeiro) {
+            localStorage.setItem('financeiro', JSON.stringify(financeiro));
+        }
+
+        function atualizarResumoFinanceiro() {
+            const financeiro = getFinanceiro();
+            const totalPremios = financeiro.premios.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
+            const totalGastos = financeiro.gastos.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
+            const totalCaixa = parseFloat(financeiro.caixa.valor || 0);
+            const saldoTotal = totalCaixa;
+
+            document.getElementById('totalCaixa').textContent = `€${totalCaixa.toFixed(2)}`;
+            document.getElementById('totalPremios').textContent = `€${totalPremios.toFixed(2)}`;
+            document.getElementById('totalGastos').textContent = `€${totalGastos.toFixed(2)}`;
+            document.getElementById('saldoTotal').textContent = `€${saldoTotal.toFixed(2)}`;
+        }
+
+        let debounceTimeoutGastos;
+        
+        function atualizarGastosPorCategoria() {
+            clearTimeout(debounceTimeoutGastos);
+            debounceTimeoutGastos = setTimeout(() => {
+                atualizarGastosPorCategoriaImpl();
+            }, 300);
+        }
+        
+        function atualizarGastosPorCategoriaImpl() {
+            const financeiro = getFinanceiro();
+            const container = document.getElementById('gastosPorCategoria');
+            const filtroTexto = (document.getElementById('filtroCustos').value || '').trim().toLowerCase();
+            const filtroCategoria = (document.getElementById('filtroCategoria').value || '').trim().toLowerCase();
+            const agrupamento = {};
+
+            const itensFiltrados = financeiro.gastos
+                .filter(item => {
+                    const categoria = (item.categoria || 'Outro').toLowerCase();
+                    const descricao = (item.descricao || '').toLowerCase();
+                    const textoMatch = !filtroTexto || categoria.includes(filtroTexto) || descricao.includes(filtroTexto);
+                    const categoriaMatch = !filtroCategoria || categoria === filtroCategoria;
+                    return textoMatch && categoriaMatch;
+                });
+
+            let totalGeral = financeiro.gastos.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
+            let totalFiltrado = itensFiltrados.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
+            let contadorFiltrado = itensFiltrados.length;
+
+            itensFiltrados.forEach(item => {
+                const categoria = item.categoria || 'Outro';
+                if (!agrupamento[categoria]) {
+                    agrupamento[categoria] = [];
+                }
+                agrupamento[categoria].push(item);
+            });
+
+            let html = '';
+            const categorias = Object.keys(agrupamento).sort();
+
+            if (categorias.length === 0) {
+                html = '<p style="color: #999; text-align: center; padding: 20px;">Nenhum gasto registado</p>';
+            } else {
+                categorias.forEach(categoria => {
+                    const totalCategoria = agrupamento[categoria].reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
+                    html += `
+                        <div class="transacao-item" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                            <div class="transacao-info">
+                                <strong>${categoria}</strong>
+                                <small>Total: €${totalCategoria.toFixed(2)}</small>
+                            </div>
+                            <div style="width: 100%;">
+                                ${agrupamento[categoria].map(item => `
+                                    <div style="padding: 10px 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 6px; background: #ffffff;">
+                                        <strong>€${parseFloat(item.valor).toFixed(2)}</strong> — ${item.descricao || 'Sem descrição'}
+                                        <div style="font-size: 12px; color: #666; margin-top: 4px;">${formatarData(item.data) || 'sem data'}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                });
+            }
+
+            container.innerHTML = html;
+            document.getElementById('totalGeralCustos').textContent = `Total geral: €${totalGeral.toFixed(2)}`;
+            document.getElementById('totalFiltradoCustos').textContent = contadorFiltrado === 0
+                ? 'Total filtrado: €0.00'
+                : `Total filtrado: €${totalFiltrado.toFixed(2)} (${contadorFiltrado} item(s))`;
+        }
+
+        let debounceTimeoutPremios;
+        
+        function atualizarPremiosDetalhes() {
+            clearTimeout(debounceTimeoutPremios);
+            debounceTimeoutPremios = setTimeout(() => {
+                atualizarPremiosDetalhesImpl();
+            }, 300);
+        }
+        
+        function atualizarPremiosDetalhesImpl() {
+            const financeiro = getFinanceiro();
+            const container = document.getElementById('premiosDetalhes');
+            const filtro = (document.getElementById('filtroPremios').value || '').trim().toLowerCase();
+
+            if (!financeiro.premios || financeiro.premios.length === 0) {
+                container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Nenhum prémio registado</p>';
+                document.getElementById('totalGeralPremios').textContent = 'Total geral: €0.00';
+                document.getElementById('totalFiltradoPremios').textContent = 'Total filtrado: €0.00';
+                return;
+            }
+
+            const premiosFiltrados = financeiro.premios
+                .filter(item => {
+                    if (!filtro) return true;
+                    const descricao = (item.descricao || '').toLowerCase();
+                    const data = (item.data || '').toLowerCase();
+                    return descricao.includes(filtro) || data.includes(filtro);
+                })
+                .slice().reverse();
+
+            const totalGeral = financeiro.premios.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
+            const totalFiltrado = premiosFiltrados.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
+
+            if (premiosFiltrados.length === 0) {
+                container.innerHTML = '<p style="color: #999; text-align: center; padding: 20px;">Nenhum prémio corresponde ao filtro</p>';
+            } else {
+                container.innerHTML = premiosFiltrados.map(item => `
+                    <div class="transacao-item premio" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                        <div class="transacao-info">
+                            <strong>€${parseFloat(item.valor).toFixed(2)}</strong>
+                            <small>${formatarData(item.data) || 'sem data'}</small>
+                        </div>
+                        <div style="width: 100%; padding: 10px 12px; border-radius: 6px; background: #ffffff; border: 1px solid #ddd;">
+                            ${item.descricao || 'Sem descrição'}
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('totalGeralPremios').textContent = `Total geral: €${totalGeral.toFixed(2)}`;
+            document.getElementById('totalFiltradoPremios').textContent = premiosFiltrados.length === 0
+                ? 'Total filtrado: €0.00'
+                : `Total filtrado: €${totalFiltrado.toFixed(2)} (${premiosFiltrados.length} item(s))`;
+        }
+
+        function limparFiltrosPremios() {
+            document.getElementById('filtroPremios').value = '';
+            atualizarPremiosDetalhes();
+        }
+
+        function atualizarHistoricoTransacoes() {
+            const financeiro = getFinanceiro();
+            const historicoDiv = document.getElementById('historicaTransacoes');
+            let html = '';
+
+            if (financeiro.caixa && financeiro.caixa.data) {
+                html += `
+                    <div class="transacao-item">
+                        <div><strong>Caixa</strong> - €${parseFloat(financeiro.caixa.valor || 0).toFixed(2)} (${formatarData(financeiro.caixa.data)})</div>
+                        <div>${financeiro.caixa.notas || 'Atualização de saldo'}</div>
+                    </div>
+                `;
+            }
+
+            financeiro.premios.slice().reverse().forEach(item => {
+                html += `
+                    <div class="transacao-item">
+                        <div><strong>Prémio</strong> - €${parseFloat(item.valor).toFixed(2)} (${formatarData(item.data) || 'sem data'})</div>
+                        <div>${item.descricao || 'Prémio registado'}</div>
+                    </div>
+                `;
+            });
+
+            financeiro.gastos.slice().reverse().forEach(item => {
+                html += `
+                    <div class="transacao-item">
+                        <div><strong>Gasto</strong> - €${parseFloat(item.valor).toFixed(2)} (${formatarData(item.data) || 'sem data'})</div>
+                        <div>${item.categoria || 'Outro'} - ${item.descricao || 'Gasto registado'}</div>
+                    </div>
+                `;
+            });
+
+            if (html === '') {
+                html = '<p style="color: #999; text-align: center; padding: 20px;">Nenhuma transação registada</p>';
+            }
+
+            historicoDiv.innerHTML = html;
+        }
+
+        function carregarFinanceiroFormulario() {
+            const financeiro = getFinanceiro();
+            document.getElementById('saldoAtual').value = parseFloat(financeiro.caixa.valor || 0).toFixed(2);
+            document.getElementById('saldoData').value = financeiro.caixa.data ? formatarData(financeiro.caixa.data) : '';
+            document.getElementById('saldoNotas').value = financeiro.caixa.notas || '';
+        }
+
+        function atualizarFinanceiro() {
+            atualizarResumoFinanceiro();
+            atualizarHistoricoTransacoes();
+            atualizarGastosPorCategoria();
+            atualizarPremiosDetalhes();
+            carregarFinanceiroFormulario();
+        }
+
+        function backupSemanal(mostrarNotificacaoAuto = true) {
+            const data = new Date();
+            const conteudoBackup = {
+                origem: 'Gestao_Pagamentos_Grupo',
+                criadoEm: data.toISOString(),
+                ano: ano,
+                membros: membros,
+                financeiro: getFinanceiro()
+            };
+            const nomeFicheiro = `backup_transferencias_${data.getFullYear()}-${String(data.getMonth() + 1).padStart(2, '0')}-${String(data.getDate()).padStart(2, '0')}.json`;
+            const blob = new Blob([JSON.stringify(conteudoBackup, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = nomeFicheiro;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            localStorage.setItem('backupSemanalUltimaData', data.toISOString());
+            if (mostrarNotificacaoAuto) {
+                mostrarNotificacao(`💾 Backup gerado (${nomeFicheiro}). Guarde em transferencias.`, 'success');
+            }
+        }
+
+        function verificarBackupSemanal() {
+            const hoje = new Date();
+            const isTerca = hoje.getDay() === 2;
+            const ultimaData = localStorage.getItem('backupSemanalUltimaData');
+            const mesmoDia = ultimaData && new Date(ultimaData).toDateString() === hoje.toDateString();
+
+            if (isTerca && !mesmoDia) {
+                mostrarNotificacao('Hoje é terça! Faça o backup semanal e salve em transferencias.', 'warning');
+            }
+        }
+
+        function exportarExcel() {
+            const financeiro = getFinanceiro();
+            const membrosX = membros.map(membro => {
+                const pagamentosPagos = Object.keys(membro.pagamentos).filter(s => membro.pagamentos[s].status === 'pago').length;
+                return {
+                    nome: membro.nome,
+                    email: membro.email || '',
+                    valorSemanal: membro.valorSemanal.toFixed(2),
+                    semanasPagas: pagamentosPagos,
+                    valorEmFalta: obterValorEmFalta(membro).toFixed(2),
+                    status: obterStatusMembro(membro),
+                    ultimaSemana: obterUltimaSemanaPagePorMembro(membro)
+                };
+            });
+
+            const membrosDetalhesRows = membros.flatMap(membro => {
+                const pagamentos = [];
+                for (let semana = 1; semana <= 52; semana++) {
+                    const pagamento = membro.pagamentos[semana];
+                    if (pagamento && pagamento.status === 'pago') {
+                        pagamentos.push({ semana, ...pagamento });
+                    } else {
+                        pagamentos.push({ semana, status: 'pendente', valor: membro.valorSemanal.toFixed(2), data: '' });
+                    }
+                }
+                return pagamentos.map(item => [
+                    { text: membro.nome, type: 'String' },
+                    { text: membro.email || '', type: 'String' },
+                    { text: item.semana, type: 'Number' },
+                    { text: item.status, type: 'String' },
+                    { text: item.valor ? parseFloat(item.valor).toFixed(2) : '0.00', type: 'Number' },
+                    { text: item.data ? formatarData(item.data) : '', type: 'String' }
+                ]);
+            });
+
+            const xmlCells = (row) => row.map(cell => `<Cell><Data ss:Type="${cell.type}">${cell.text}</Data></Cell>`).join('');
+            const xmlRow = (row) => `<Row>${xmlCells(row)}</Row>`;
+
+            const criarWorksheet = (name, headers, rows) => `
+                <Worksheet ss:Name="${name}">
+                    <Table>
+                        ${xmlRow(headers)}
+                        ${rows.map(r => xmlRow(r)).join('')}
+                    </Table>
+                </Worksheet>
+            `;
+
+            const membrosRows = membrosX.map(item => [
+                { text: item.nome, type: 'String' },
+                { text: item.email, type: 'String' },
+                { text: item.valorSemanal, type: 'Number' },
+                { text: item.semanasPagas, type: 'Number' },
+                { text: item.valorEmFalta, type: 'Number' },
+                { text: item.status, type: 'String' },
+                { text: item.ultimaSemana, type: 'Number' }
+            ]);
+
+            const premiosRows = financeiro.premios.map(item => [
+                { text: item.valor.toFixed(2), type: 'Number' },
+                { text: item.data ? formatarData(item.data) : '', type: 'String' },
+                { text: item.descricao || '', type: 'String' }
+            ]);
+
+            const gastosRows = financeiro.gastos.map(item => [
+                { text: item.valor.toFixed(2), type: 'Number' },
+                { text: item.data ? formatarData(item.data) : '', type: 'String' },
+                { text: item.categoria || '', type: 'String' },
+                { text: item.descricao || '', type: 'String' }
+            ]);
+
+            const totalPremios = financeiro.premios.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
+            const totalGastos = financeiro.gastos.reduce((sum, item) => sum + parseFloat(item.valor || 0), 0);
+            const totalMembros = membros.length;
+            const totalCompletos = membros.filter(m => obterStatusMembro(m) === 'completo').length;
+            const totalParciais = membros.filter(m => obterStatusMembro(m) === 'parcial').length;
+            const totalPendentes = membros.filter(m => obterStatusMembro(m) === 'pendente').length;
+            const totalValorSemanal = membros.reduce((sum, membro) => sum + parseFloat(membro.valorSemanal || 0), 0);
+            const dashboardRows = [[
+                { text: ano.toString(), type: 'String' },
+                { text: totalMembros.toString(), type: 'Number' },
+                { text: totalCompletos.toString(), type: 'Number' },
+                { text: totalParciais.toString(), type: 'Number' },
+                { text: totalPendentes.toString(), type: 'Number' },
+                { text: totalValorSemanal.toFixed(2), type: 'Number' },
+                { text: totalPremios.toFixed(2), type: 'Number' },
+                { text: totalGastos.toFixed(2), type: 'Number' },
+                { text: parseFloat(financeiro.caixa.valor || 0).toFixed(2), type: 'Number' }
+            ]];
+
+            const transacoesRows = [];
+            if (financeiro.caixa && financeiro.caixa.data) {
+                transacoesRows.push([
+                    { text: 'Caixa', type: 'String' },
+                    { text: parseFloat(financeiro.caixa.valor || 0).toFixed(2), type: 'Number' },
+                    { text: financeiro.caixa.data ? formatarData(financeiro.caixa.data) : '', type: 'String' },
+                    { text: financeiro.caixa.notas || '', type: 'String' },
+                    { text: '', type: 'String' },
+                    { text: '', type: 'String' }
+                ]);
+            }
+            financeiro.premios.slice().reverse().forEach(item => {
+                transacoesRows.push([
+                    { text: 'Prémio', type: 'String' },
+                    { text: item.valor.toFixed(2), type: 'Number' },
+                    { text: item.data ? formatarData(item.data) : '', type: 'String' },
+                    { text: item.descricao || '', type: 'String' },
+                    { text: '', type: 'String' },
+                    { text: '', type: 'String' }
+                ]);
+            });
+            financeiro.gastos.slice().reverse().forEach(item => {
+                transacoesRows.push([
+                    { text: 'Gasto', type: 'String' },
+                    { text: parseFloat(item.valor).toFixed(2), type: 'Number' },
+                    { text: item.data ? formatarData(item.data) : '', type: 'String' },
+                    { text: item.descricao || '', type: 'String' },
+                    { text: item.categoria || '', type: 'String' },
+                    { text: item.categoria === 'Gasto de Registo' ? 'Registo' : item.categoria === 'Gasto Diverso' ? 'Diverso' : 'Outro', type: 'String' }
+                ]);
+            });
+
+            const workbook = `<?xml version="1.0"?>
+                <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+                          xmlns:o="urn:schemas-microsoft-com:office:office"
+                          xmlns:x="urn:schemas-microsoft-com:office:excel"
+                          xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+                          xmlns:html="http://www.w3.org/TR/REC-html40">
+                    ${criarWorksheet('Dashboard', [
+                        { text: 'Ano', type: 'String' },
+                        { text: 'Total Membros', type: 'String' },
+                        { text: 'Completos', type: 'String' },
+                        { text: 'Parciais', type: 'String' },
+                        { text: 'Pendentes', type: 'String' },
+                        { text: 'Total Valor Semanal', type: 'String' },
+                        { text: 'Total Prémios', type: 'String' },
+                        { text: 'Total Gastos', type: 'String' },
+                        { text: 'Valor em Caixa', type: 'String' }
+                    ], dashboardRows)}
+                    ${criarWorksheet('Gestao de Membros', [
+                        { text: 'Nome', type: 'String' },
+                        { text: 'Email', type: 'String' },
+                        { text: 'Valor Semanal', type: 'String' },
+                        { text: 'Semanas Pagas', type: 'String' },
+                        { text: 'Valor em Falta', type: 'String' },
+                        { text: 'Status', type: 'String' },
+                        { text: 'Última Semana', type: 'String' }
+                    ], membrosRows)}
+                    ${criarWorksheet('Detalhes de Membros', [
+                        { text: 'Nome', type: 'String' },
+                        { text: 'Email', type: 'String' },
+                        { text: 'Semana', type: 'String' },
+                        { text: 'Status', type: 'String' },
+                        { text: 'Valor', type: 'String' },
+                        { text: 'Data', type: 'String' }
+                    ], membrosDetalhesRows)}
+                    ${criarWorksheet('Prémios', [
+                        { text: 'Valor', type: 'String' },
+                        { text: 'Data', type: 'String' },
+                        { text: 'Descrição', type: 'String' }
+                    ], premiosRows)}
+                    ${criarWorksheet('Gastos', [
+                        { text: 'Valor', type: 'String' },
+                        { text: 'Data', type: 'String' },
+                        { text: 'Categoria', type: 'String' },
+                        { text: 'Descrição', type: 'String' }
+                    ], gastosRows)}
+                    ${criarWorksheet('Financeiro', [
+                        { text: 'Valor em Caixa', type: 'String' },
+                        { text: 'Data', type: 'String' },
+                        { text: 'Notas', type: 'String' },
+                        { text: 'Total Prémios', type: 'String' },
+                        { text: 'Total Gastos', type: 'String' },
+                        { text: 'Saldo Atual', type: 'String' }
+                    ], [[
+                        { text: parseFloat(financeiro.caixa.valor || 0).toFixed(2), type: 'Number' },
+                        { text: financeiro.caixa.data ? formatarData(financeiro.caixa.data) : '', type: 'String' },
+                        { text: financeiro.caixa.notas || '', type: 'String' },
+                        { text: totalPremios.toFixed(2), type: 'Number' },
+                        { text: totalGastos.toFixed(2), type: 'Number' },
+                        { text: parseFloat(financeiro.caixa.valor || 0).toFixed(2), type: 'Number' }
+                    ]])}
+                    ${criarWorksheet('Transações', [
+                        { text: 'Tipo', type: 'String' },
+                        { text: 'Valor', type: 'String' },
+                        { text: 'Data', type: 'String' },
+                        { text: 'Descrição', type: 'String' },
+                        { text: 'Categoria', type: 'String' },
+                        { text: 'Tipo de Gasto', type: 'String' }
+                    ], transacoesRows)}
+                </Workbook>`;
+
+            const blob = new Blob([workbook], { type: 'application/vnd.ms-excel' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'gestao_financeira.xls';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+
+        function importarExcel() {
+            document.getElementById('importFileInput').click();
+        }
+
+        function handleImportFile(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    processWorkbook(workbook);
+                } catch (error) {
+                    mostrarNotificacao('❌ Erro ao ler o ficheiro Excel.', 'error');
+                    console.error(error);
+                } finally {
+                    event.target.value = '';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function processWorkbook(workbook) {
+            const findSheet = names => names.map(name => workbook.Sheets[name]).find(sheet => sheet);
+            const headerIndex = (headerRow, name) => {
+                return headerRow.findIndex(cell => String(cell || '').trim().toLowerCase() === name.toLowerCase());
+            };
+
+            const sheetMembros = findSheet(['Gestao de Membros', 'Gestão de Membros', 'Membros']);
+            const sheetDetalhes = findSheet(['Detalhes de Membros', 'Detalhes de Membro', 'Detalhes']);
+            const sheetPremios = findSheet(['Prémios', 'Premios', 'Prizes']);
+            const sheetGastos = findSheet(['Gastos', 'Expenses']);
+            const sheetFinanceiro = findSheet(['Financeiro', 'Finance']);
+
+            const importedMembros = {};
+
+            if (sheetMembros) {
+                const rows = XLSX.utils.sheet_to_json(sheetMembros, { header: 1, defval: '' });
+                const header = rows[0] || [];
+                const nomeIndex = headerIndex(header, 'nome');
+                const emailIndex = headerIndex(header, 'email');
+                const valorIndex = headerIndex(header, 'valor semanal');
+
+                rows.slice(1).forEach(row => {
+                    const nome = String(row[nomeIndex] || '').trim();
+                    if (!nome) return;
+                    const email = String(row[emailIndex] || '').trim();
+                    const valorSemanal = parseFloat(String(row[valorIndex] || '').replace(',', '.')) || 0;
+                    const key = `${nome}|${email}`;
+                    importedMembros[key] = {
+                        id: Date.now() + Math.random(),
+                        nome,
+                        email,
+                        valorSemanal,
+                        pagamentos: {}
+                    };
+                });
+            }
+
+            if (sheetDetalhes) {
+                const rows = XLSX.utils.sheet_to_json(sheetDetalhes, { header: 1, defval: '' });
+                const header = rows[0] || [];
+                const nomeIndex = headerIndex(header, 'nome');
+                const emailIndex = headerIndex(header, 'email');
+                const semanaIndex = headerIndex(header, 'semana');
+                const statusIndex = headerIndex(header, 'status');
+                const valorIndex = headerIndex(header, 'valor');
+                const dataIndex = headerIndex(header, 'data');
+
+                rows.slice(1).forEach(row => {
+                    const nome = String(row[nomeIndex] || '').trim();
+                    if (!nome) return;
+                    const email = String(row[emailIndex] || '').trim();
+                    const key = `${nome}|${email}`;
+                    if (!importedMembros[key]) {
+                        importedMembros[key] = {
+                            id: Date.now() + Math.random(),
+                            nome,
+                            email,
+                            valorSemanal: 0,
+                            pagamentos: {}
+                        };
+                    }
+
+                    const membro = importedMembros[key];
+                    const semana = parseInt(String(row[semanaIndex] || ''), 10);
+                    if (!semana || semana < 1 || semana > 52) return;
+                    const status = String(row[statusIndex] || '').trim() || 'pendente';
+                    const valor = parseFloat(String(row[valorIndex] || '').replace(',', '.')) || membro.valorSemanal || 0;
+                    const data = normalizeToISO(String(row[dataIndex] || '').trim());
+
+                    membro.valorSemanal = membro.valorSemanal || valor;
+                    membro.pagamentos[semana] = {
+                        status: status.toLowerCase() === 'pago' ? 'pago' : 'pendente',
+                        valor,
+                        data
+                    };
+                });
+            }
+
+            const membrosArray = Object.values(importedMembros);
+            if (membrosArray.length > 0) {
+                membros = membrosArray;
+                guardarDados();
+            }
+
+            const financeiro = getFinanceiro();
+            if (sheetPremios) {
+                const rows = XLSX.utils.sheet_to_json(sheetPremios, { header: 1, defval: '' });
+                const header = rows[0] || [];
+                const valorIndex = headerIndex(header, 'valor');
+                const dataIndex = headerIndex(header, 'data');
+                const descricaoIndex = headerIndex(header, 'descrição');
+                    financeiro.premios = rows.slice(1).map(row => ({
+                    id: Date.now() + Math.random(),
+                    valor: parseFloat(String(row[valorIndex] || '').replace(',', '.')) || 0,
+                    data: normalizeToISO(String(row[dataIndex] || '').trim()) || new Date().toISOString().split('T')[0],
+                    descricao: String(row[descricaoIndex] || '').trim()
+                })).filter(item => item.valor > 0);
+            }
+
+            if (sheetGastos) {
+                const rows = XLSX.utils.sheet_to_json(sheetGastos, { header: 1, defval: '' });
+                const header = rows[0] || [];
+                const valorIndex = headerIndex(header, 'valor');
+                const dataIndex = headerIndex(header, 'data');
+                const categoriaIndex = headerIndex(header, 'categoria');
+                const descricaoIndex = headerIndex(header, 'descrição');
+                financeiro.gastos = rows.slice(1).map(row => ({
+                    id: Date.now() + Math.random(),
+                    valor: parseFloat(String(row[valorIndex] || '').replace(',', '.')) || 0,
+                    data: normalizeToISO(String(row[dataIndex] || '').trim()) || new Date().toISOString().split('T')[0],
+                    categoria: String(row[categoriaIndex] || '').trim(),
+                    descricao: String(row[descricaoIndex] || '').trim()
+                })).filter(item => item.valor > 0);
+            }
+
+            if (sheetFinanceiro) {
+                const rows = XLSX.utils.sheet_to_json(sheetFinanceiro, { header: 1, defval: '' });
+                if (rows.length > 1) {
+                    const header = rows[0] || [];
+                    const valorIndex = headerIndex(header, 'valor em caixa');
+                    const dataIndex = headerIndex(header, 'data');
+                    const notasIndex = headerIndex(header, 'notas');
+                    const linha = rows[1] || [];
+                    financeiro.caixa = {
+                        valor: parseFloat(String(linha[valorIndex] || '').replace(',', '.')) || 0,
+                        data: normalizeToISO(String(linha[dataIndex] || '').trim()) || new Date().toISOString().split('T')[0],
+                        notas: String(linha[notasIndex] || '').trim()
+                    };
+                }
+            }
+
+            guardarFinanceiro(financeiro);
+            atualizarFinanceiro();
+            atualizarDashboard();
+            atualizarTabelaMembros();
+            atualizarSelectorMembro();
+            atualizarGraficos();
+            mostrarNotificacao('✓ Importação concluída. Todos os dados foram atualizados.', 'success');
+        }
+
+        function limparFiltrosCustos() {
+            document.getElementById('filtroCategoria').value = '';
+            document.getElementById('filtroCustos').value = '';
+            atualizarGastosPorCategoria();
+        }
+
+        function adicionarPremio() {
+            const valor = parseFloat(document.getElementById('premioValor').value) || 0;
+            const dataRaw = document.getElementById('premioData').value;
+            const data = parseDataToISO(dataRaw);
+            const descricao = document.getElementById('premioDescricao').value.trim();
+
+            if (valor <= 0) {
+                mostrarNotificacao('❌ Por favor, adicione um valor de prémio válido.');
+                return;
+            }
+
+            const financeiro = getFinanceiro();
+            financeiro.premios.push({
+                id: Date.now(),
+                valor,
+                data: data || new Date().toISOString().split('T')[0],
+                descricao
+            });
+            financeiro.caixa.valor = parseFloat(financeiro.caixa.valor || 0) + valor;
+            guardarFinanceiro(financeiro);
+            atualizarFinanceiro();
+            mostrarNotificacao('✓ Prémio registado com sucesso!');
+
+            document.getElementById('premioValor').value = '';
+            document.getElementById('premioData').value = '';
+            document.getElementById('premioDescricao').value = '';
+        }
+
+        function adicionarGasto() {
+            const valor = parseFloat(document.getElementById('gastoValor').value) || 0;
+            const dataRaw = document.getElementById('gastoData').value;
+            const data = parseDataToISO(dataRaw);
+            const categoria = document.getElementById('gastoCategoria').value;
+            const descricao = document.getElementById('gastoDescricao').value.trim();
+
+            if (valor <= 0) {
+                mostrarNotificacao('❌ Por favor, adicione um valor de gasto válido.');
+                return;
+            }
+
+            const financeiro = getFinanceiro();
+            financeiro.gastos.push({
+                id: Date.now(),
+                valor,
+                data: data || new Date().toISOString().split('T')[0],
+                categoria,
+                descricao
+            });
+            financeiro.caixa.valor = parseFloat(financeiro.caixa.valor || 0) - valor;
+            guardarFinanceiro(financeiro);
+            atualizarFinanceiro();
+            mostrarNotificacao('✓ Gasto registado com sucesso!');
+
+            document.getElementById('gastoValor').value = '';
+            document.getElementById('gastoData').value = '';
+            document.getElementById('gastoCategoria').value = '';
+            document.getElementById('gastoDescricao').value = '';
+        }
+
+        function atualizarSaldo() {
+            const valor = parseFloat(document.getElementById('saldoAtual').value) || 0;
+            const dataRaw = document.getElementById('saldoData').value;
+            const data = parseDataToISO(dataRaw);
+            const notas = document.getElementById('saldoNotas').value.trim();
+
+            const financeiro = getFinanceiro();
+            financeiro.caixa = {
+                valor,
+                data: data || new Date().toISOString().split('T')[0],
+                notas
+            };
+            guardarFinanceiro(financeiro);
+            atualizarFinanceiro();
+            mostrarNotificacao('✓ Saldo atualizado com sucesso!');
+        }
+
+        function mostrarNotificacao(mensagem, tipo = 'info') {
+            const notif = document.createElement('div');
+            notif.className = `notificacao ${tipo}`;
+            notif.textContent = mensagem;
+            document.body.appendChild(notif);
+            setTimeout(() => notif.remove(), 4000);
+        }
+        
+        function guardarDados() {
+            localStorage.setItem('membros', JSON.stringify(membros));
+            atualizarGraficos();
+        }
+        
+        function trocarAba(abaId) {
+            // Ocultar todas as abas
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+                tab.setAttribute('aria-hidden', 'true');
+            });
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+                btn.setAttribute('aria-selected', 'false');
+            });
+            
+            // Mostrar aba selecionada
+            const abaAtiva = document.getElementById(abaId);
+            const botaoAtivo = document.getElementById('tab-' + abaId);
+            
+            abaAtiva.classList.add('active');
+            abaAtiva.setAttribute('aria-hidden', 'false');
+            
+            botaoAtivo.classList.add('active');
+            botaoAtivo.setAttribute('aria-selected', 'true');
+            
+            // Focar no conteúdo da aba para acessibilidade
+            abaAtiva.focus();
+            
+            // Atualizar conteúdo
+            if (abaId === 'dashboard') {
+                atualizarDashboard();
+            } else if (abaId === 'membros') {
+                atualizarTabelaMembros();
+            } else if (abaId === 'detalhes') {
+                atualizarSelectorMembro();
+            } else if (abaId === 'financeiro') {
+                atualizarFinanceiro();
+            }
+        }
+        
+        // Navegação por teclado para abas
+        function configurarNavegacaoAbas() {
+            const abas = ['dashboard', 'membros', 'detalhes', 'financeiro'];
+            
+            document.addEventListener('keydown', function(e) {
+                const abaAtiva = document.querySelector('.tab-button.active');
+                if (!abaAtiva) return;
+                
+                const indiceAtual = abas.indexOf(abaAtiva.id.replace('tab-', ''));
+                
+                if (e.key === 'ArrowLeft' && indiceAtual > 0) {
+                    e.preventDefault();
+                    trocarAba(abas[indiceAtual - 1]);
+                } else if (e.key === 'ArrowRight' && indiceAtual < abas.length - 1) {
+                    e.preventDefault();
+                    trocarAba(abas[indiceAtual + 1]);
+                }
+            });
+        }
+        
+        function adicionarMembro() {
+            const nome = document.getElementById('novoNome').value.trim();
+            const email = document.getElementById('novoEmail').value.trim();
+            const valor = parseFloat(document.getElementById('novoValor').value) || 0;
+            
+            if (!nome) {
+                mostrarNotificacao('❌ Por favor, preencha o nome!');
+                return;
+            }
+            
+            const novoMembro = {
+                id: Date.now(),
+                nome: nome,
+                email: email,
+                valorSemanal: valor,
+                pagamentos: {}
+            };
+            
+            membros.push(novoMembro);
+            guardarDados();
+            mostrarNotificacao(`✓ Membro "${nome}" adicionado!`);
+            
+            document.getElementById('novoNome').value = '';
+            document.getElementById('novoEmail').value = '';
+            document.getElementById('novoValor').value = '';
+            
+            atualizarTabelaMembros();
+            atualizarDashboard();
+        }
+        
+        function apagarMembro(id) {
+            const membro = membros.find(m => m.id === id);
+            const valorEmFalta = obterValorEmFalta(membro);
+            const confirmacao = confirm(`⚠️ ATENÇÃO: Esta ação é irreversível!\n\nMembro: ${membro.nome}\nValor em falta: €${valorEmFalta.toFixed(2)}\n\nTodos os dados deste membro serão perdidos permanentemente.\n\nTem a certeza que quer continuar?`);
+            if (confirmacao) {
+                membros = membros.filter(m => m.id !== id);
+                guardarDados();
+                mostrarNotificacao(`✓ Membro "${membro.nome}" apagado com sucesso!`, 'success');
+                atualizarTabelaMembros();
+                atualizarDashboard();
+            }
+        }
+        
+        function obterStatusMembro(membro) {
+            const pagosCount = Object.keys(membro.pagamentos).filter(s => membro.pagamentos[s].status === 'pago').length;
+            
+            if (pagosCount === 0) return 'pendente';
+            if (pagosCount === 52) return 'completo';
+            return 'parcial';
+        }
+        
+        function obterUltimaSemanaPagePorMembro(membro) {
+            let maxSemana = 0;
+            for (let semana in membro.pagamentos) {
+                if (membro.pagamentos[semana].status === 'pago') {
+                    const sNum = parseInt(semana);
+                    if (sNum > maxSemana) maxSemana = sNum;
+                }
+            }
+            return maxSemana;
+        }
+        
+        function obterProgressoMembro(membro) {
+            const pagosCount = Object.keys(membro.pagamentos).filter(s => membro.pagamentos[s].status === 'pago').length;
+            return Math.round((pagosCount / 52) * 100);
+        }
+        
+        let paginaAtual = 1;
+        const itensPorPagina = 6;
+        
+        function atualizarDashboard(pagina = 1) {
+            paginaAtual = pagina;
+            const grid = document.getElementById('dashboardGrid');
+            grid.innerHTML = '';
+            
+            const inicio = (pagina - 1) * itensPorPagina;
+            const fim = inicio + itensPorPagina;
+            const membrosPaginados = membros.slice(inicio, fim);
+            
+            membrosPaginados.forEach(membro => {
+                const status = obterStatusMembro(membro);
+                const ultimaSemana = obterUltimaSemanaPagePorMembro(membro);
+                const progresso = obterProgressoMembro(membro);
+                
+                const card = document.createElement('div');
+                card.className = 'member-card';
+                card.tabIndex = 0;
+                card.onclick = () => {
+                    document.getElementById('selectMembro').value = membro.id;
+                    carregarDetalhesMembro();
+                    trocarAba('detalhes');
+                };
+                card.onkeydown = (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        card.click();
+                    }
+                };
+                
+                card.innerHTML = `
+                    <h3>${membro.nome}</h3>
+                    <div class="status ${status}">
+                        ${status === 'completo' ? '✓ Completo' : status === 'parcial' ? '⏳ Parcial' : '⏳ Pendente'}
+                    </div>
+                    <div class="member-info">
+                        <strong>Até Semana:</strong> ${ultimaSemana}/52
+                    </div>
+                    <div class="member-info">
+                        <strong>Email:</strong> ${membro.email || 'N/A'}
+                    </div>
+                    <div class="member-info">
+                        <strong>Valor Semanal:</strong> €${membro.valorSemanal.toFixed(2)}
+                    </div>
+                    <div class="member-info">
+                        <strong>Valor Pago:</strong> €${obterValorPago(membro).toFixed(2)}
+                    </div>
+                    <div class="member-info">
+                        <strong>Valor em Falta:</strong> €${obterValorEmFalta(membro).toFixed(2)}
+                    </div>
+                    <div class="member-progress">
+                        <div class="progress-bar" style="width: ${progresso}%">
+                            ${progresso}%
+                        </div>
+                    </div>
+                `;
+                
+                grid.appendChild(card);
+            });
+            
+            // Adicionar paginação
+            adicionarPaginacao();
+            
+            document.getElementById('totalMembros').textContent = membros.length;
+            document.getElementById('anoAtual').textContent = ano;
+        }
+        
+        function adicionarPaginacao() {
+            const totalPaginas = Math.ceil(membros.length / itensPorPagina);
+            if (totalPaginas <= 1) return;
+            
+            const grid = document.getElementById('dashboardGrid');
+            const paginacao = document.createElement('div');
+            paginacao.className = 'pagination';
+            
+            // Botão anterior
+            if (paginaAtual > 1) {
+                const btnAnterior = document.createElement('button');
+                btnAnterior.textContent = '← Anterior';
+                btnAnterior.onclick = () => atualizarDashboard(paginaAtual - 1);
+                paginacao.appendChild(btnAnterior);
+            }
+            
+            // Números das páginas
+            const inicio = Math.max(1, paginaAtual - 2);
+            const fim = Math.min(totalPaginas, paginaAtual + 2);
+            
+            for (let i = inicio; i <= fim; i++) {
+                const btn = document.createElement('button');
+                btn.textContent = i;
+                btn.className = i === paginaAtual ? 'active' : '';
+                btn.onclick = () => atualizarDashboard(i);
+                paginacao.appendChild(btn);
+            }
+            
+            // Botão próximo
+            if (paginaAtual < totalPaginas) {
+                const btnProximo = document.createElement('button');
+                btnProximo.textContent = 'Próximo →';
+                btnProximo.onclick = () => atualizarDashboard(paginaAtual + 1);
+                paginacao.appendChild(btnProximo);
+            }
+            
+            grid.appendChild(paginacao);
+        }
+        
+        function atualizarTabelaMembros() {
+            const tbody = document.getElementById('tabelaMembros');
+            tbody.innerHTML = '';
+            
+            membros.forEach(membro => {
+                const status = obterStatusMembro(membro);
+                const ultimaSemana = obterUltimaSemanaPagePorMembro(membro);
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${membro.nome}</strong></td>
+                    <td>${membro.email || '—'}</td>
+                    <td>€${membro.valorSemanal.toFixed(2)}</td>
+                    <td>${ultimaSemana}/52</td>
+                    <td>
+                        <div class="status ${status}">
+                            ${status === 'completo' ? '✓ Completo' : status === 'parcial' ? '⏳ Parcial' : '⏳ Pendente'}
+                        </div>
+                    </td>
+                    <td class="table-actions">
+                        <button class="btn-primary" onclick="document.getElementById('selectMembro').value = ${membro.id}; carregarDetalhesMembro(); trocarAba('detalhes')" title="Ver detalhes do membro">Ver</button>
+                        <button class="btn-danger" onclick="apagarMembro(${membro.id})" title="Apagar membro permanentemente">Apagar</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+        
+        function atualizarSelectorMembro() {
+            const select = document.getElementById('selectMembro');
+            const opcoes = '<option value="">Escolha um membro...</option>';
+            select.innerHTML = opcoes + membros.map(m => 
+                `<option value="${m.id}">${m.nome}</option>`
+            ).join('');
+        }
+        
+        function carregarDetalhesMembro() {
+            const memberId = parseInt(document.getElementById('selectMembro').value);
+            
+            if (!memberId) {
+                document.getElementById('detalhesMembro').style.display = 'none';
+                return;
+            }
+            
+            const membro = membros.find(m => m.id === memberId);
+            if (!membro) return;
+            
+            document.getElementById('nomeMembroDetalhe').textContent = membro.nome;
+            
+            const pagosCount = Object.keys(membro.pagamentos).filter(s => membro.pagamentos[s].status === 'pago').length;
+            const pendetesCount = 52 - pagosCount;
+            const progresso = obterProgressoMembro(membro);
+            const ultimaSemana = obterUltimaSemanaPagePorMembro(membro);
+            
+            document.getElementById('ateSemanaStat').textContent = ultimaSemana;
+            document.getElementById('semanasPagasStat').textContent = pagosCount;
+            document.getElementById('semanasPendentesStat').textContent = pendetesCount;
+            document.getElementById('progressoStat').textContent = progresso + '%';
+            document.getElementById('valorPagoStat').textContent = `€${obterValorPago(membro).toFixed(2)}`;
+            document.getElementById('valorFaltaStat').textContent = `€${obterValorEmFalta(membro).toFixed(2)}`;
+            
+            atualizarHistoricoMembro(membro);
+            document.getElementById('detalhesMembro').style.display = 'block';
+            
+            // Adicionar event listener para atualizar semanas múltiplas
+            const valorInput = document.getElementById('valorInput');
+            valorInput.oninput = function() {
+                if (document.getElementById('pagamentoMultiplo').checked) {
+                    atualizarSemanasMultiplas();
+                }
+            };
+        }
+        
+        function atualizarHistoricoMembro(membro) {
+            const historico = document.getElementById('historicoMembro');
+            let html = '';
+            
+            for (let semana = 1; semana <= 52; semana++) {
+                const pag = membro.pagamentos[semana];
+                
+                if (pag && pag.status === 'pago') {
+                    html += `
+                        <div class="semana-item pago">
+                            <div>
+                                <strong>Semana ${semana}</strong> - €${pag.valor || membro.valorSemanal} 
+                                ${pag.data ? `(${formatarData(pag.data)})` : ''}
+                            </div>
+                            <button class="btn-danger" onclick="removerPagamentoMembro(${membro.id}, ${semana})">Remover</button>
+                        </div>
+                    `;
+                }
+            }
+            
+            if (html === '') {
+                html = '<p style="color: #999; text-align: center; padding: 20px;">Nenhum pagamento registado</p>';
+            }
+            
+            historico.innerHTML = html;
+        }
+        
+        function togglePagamentoMultiplo() {
+            const isMultiplo = document.getElementById('pagamentoMultiplo').checked;
+            const semanaGroup = document.getElementById('semanaGroup');
+            const semanasMultiplas = document.getElementById('semanasMultiplas');
+            
+            if (isMultiplo) {
+                semanaGroup.style.display = 'none';
+                semanasMultiplas.style.display = 'block';
+                atualizarSemanasMultiplas();
+            } else {
+                semanaGroup.style.display = 'block';
+                semanasMultiplas.style.display = 'none';
+            }
+        }
+        
+        function atualizarSemanasMultiplas() {
+            const memberId = parseInt(document.getElementById('selectMembro').value);
+            const valorTotal = parseFloat(document.getElementById('valorInput').value) || 0;
+            const membro = membros.find(m => m.id === memberId);
+            
+            if (!membro) return;
+            
+            const valorSemanal = membro.valorSemanal;
+            const semanasNecessarias = Math.ceil(valorTotal / valorSemanal);
+            
+            const semanasCheckboxes = document.getElementById('semanasCheckboxes');
+            const semanasInfo = document.getElementById('semanasInfo');
+            
+            semanasCheckboxes.innerHTML = '';
+            
+            if (valorTotal <= 0) {
+                semanasInfo.textContent = 'Insira um valor para ver as semanas disponíveis.';
+                return;
+            }
+            
+            // Encontrar semanas pendentes
+            const semanasPendentes = [];
+            for (let semana = 1; semana <= 52; semana++) {
+                if (!membro.pagamentos[semana] || membro.pagamentos[semana].status !== 'pago') {
+                    semanasPendentes.push(semana);
+                }
+            }
+            
+            if (semanasPendentes.length === 0) {
+                semanasInfo.textContent = 'Todas as semanas já estão pagas.';
+                return;
+            }
+            
+            const semanasSelecionadas = semanasPendentes.slice(0, semanasNecessarias);
+            
+            semanasSelecionadas.forEach(semana => {
+                const checkbox = document.createElement('div');
+                checkbox.className = 'semana-checkbox';
+                checkbox.innerHTML = `
+                    <input type="checkbox" id="semana${semana}" value="${semana}" checked>
+                    <label for="semana${semana}">Semana ${semana}</label>
+                `;
+                semanasCheckboxes.appendChild(checkbox);
+            });
+            
+            semanasInfo.textContent = `Valor semanal: €${valorSemanal.toFixed(2)} | Semanas necessárias: ${semanasNecessarias} | Semanas disponíveis: ${semanasPendentes.length}`;
+        }
+        
+        function adicionarPagamentoMembro() {
+            const memberId = parseInt(document.getElementById('selectMembro').value);
+            const valor = parseFloat(document.getElementById('valorInput').value) || 0;
+            const dataRaw = document.getElementById('dataPagamentoInput').value;
+            const data = parseDataToISO(dataRaw);
+            const observacoes = document.getElementById('observacoesInput').value;
+            const isMultiplo = document.getElementById('pagamentoMultiplo').checked;
+            
+            if (!memberId || valor <= 0) {
+                mostrarNotificacao('❌ Dados inválidos!');
+                return;
+            }
+            
+            const membro = membros.find(m => m.id === memberId);
+            if (!membro) return;
+            
+            if (isMultiplo) {
+                // Pagamento múltiplo
+                const semanasSelecionadas = [];
+                const checkboxes = document.querySelectorAll('#semanasCheckboxes input[type="checkbox"]:checked');
+                
+                checkboxes.forEach(cb => {
+                    semanasSelecionadas.push(parseInt(cb.value));
+                });
+                
+                if (semanasSelecionadas.length === 0) {
+                    mostrarNotificacao('❌ Selecione pelo menos uma semana!');
+                    return;
+                }
+                
+                const valorSemanal = membro.valorSemanal;
+                const valorTotalNecessario = semanasSelecionadas.length * valorSemanal;
+                
+                if (valor < valorTotalNecessario) {
+                    mostrarNotificacao(`❌ Valor insuficiente! Necessário: €${valorTotalNecessario.toFixed(2)}`);
+                    return;
+                }
+                
+                // Registrar pagamentos para cada semana
+                semanasSelecionadas.forEach(semana => {
+                    membro.pagamentos[semana] = {
+                        status: 'pago',
+                        valor: valorSemanal,
+                        data: data || new Date().toISOString().split('T')[0],
+                        observacoes: observacoes
+                    };
+                });
+                
+                mostrarNotificacao(`✓ ${semanasSelecionadas.length} semanas marcadas como pagas!`);
+                
+            } else {
+                // Pagamento único
+                const semana = parseInt(document.getElementById('semanaInput').value);
+                
+                if (!semana || semana < 1 || semana > 52) {
+                    mostrarNotificacao('❌ Semana inválida!');
+                    return;
+                }
+                
+                membro.pagamentos[semana] = {
+                    status: 'pago',
+                    valor: valor || membro.valorSemanal,
+                    data: data || new Date().toISOString().split('T')[0],
+                    observacoes: observacoes
+                };
+                
+                mostrarNotificacao(`✓ Semana ${semana} marcada como paga!`);
+            }
+            
+            // Adicionar valor ao caixa
+            const financeiro = getFinanceiro();
+            const valorAtual = parseFloat(financeiro.caixa.valor || 0);
+            const novoValor = valorAtual + valor;
+            financeiro.caixa.valor = novoValor;
+            localStorage.setItem('financeiro', JSON.stringify(financeiro));
+            console.log(`Caixa atualizado: ${valorAtual} + ${valor} = ${novoValor}`);
+            
+            guardarDados();
+            
+            // Limpar campos
+            document.getElementById('semanaInput').value = '';
+            document.getElementById('valorInput').value = '';
+            document.getElementById('dataPagamentoInput').value = '';
+            document.getElementById('observacoesInput').value = '';
+            document.getElementById('pagamentoMultiplo').checked = false;
+            togglePagamentoMultiplo();
+            
+            carregarDetalhesMembro();
+            atualizarDashboard();
+            atualizarTabelaMembros();
+            atualizarFinanceiro();
+        }
+        
+        function removerPagamentoMembro(memberId, semana) {
+            const membro = membros.find(m => m.id === memberId);
+            if (!membro) return;
+            
+            const pagamento = membro.pagamentos[semana];
+            const valor = pagamento ? (pagamento.valor || membro.valorSemanal) : membro.valorSemanal;
+            
+            if (confirm(`Remover pagamento da semana ${semana}?\n\nMembro: ${membro.nome}\nValor: €${valor.toFixed(2)}\n\nEsta ação pode afetar o saldo do membro.`)) {
+                delete membro.pagamentos[semana];
+                
+                // Subtrair valor do caixa
+                const financeiro = getFinanceiro();
+                financeiro.caixa.valor = parseFloat(financeiro.caixa.valor || 0) - valor;
+                localStorage.setItem('financeiro', JSON.stringify(financeiro));
+                
+                guardarDados();
+                mostrarNotificacao(`✓ Pagamento da semana ${semana} removido!`, 'warning');
+                carregarDetalhesMembro();
+                atualizarDashboard();
+                atualizarTabelaMembros();
+                atualizarFinanceiro();
+            }
+        }
+        
+        function limparDetalhes() {
+            document.getElementById('detalhesMembro').style.display = 'none';
+            document.getElementById('selectMembro').value = '';
+        }
+        
+        // Funções de Gráficos
+        function inicializarGraficos() {
+            setTimeout(() => {
+                criarGraficoProgresso();
+                criarGraficoGastos();
+                criarGraficoCaixa();
+            }, 100);
+        }
+        
+        function criarGraficoProgresso() {
+            const ctx = document.getElementById('chartProgresso');
+            if (!ctx) return;
+            
+            const labels = [];
+            const data = [];
+            let descricao = 'Gráfico de barras mostrando o progresso de pagamento dos membros:\n';
+            
+            membros.forEach(membro => {
+                const progresso = ((52 - obterValorEmFalta(membro) / membro.valorSemanal) / 52) * 100;
+                const progressoFormatado = Math.min(progresso, 100).toFixed(1);
+                labels.push(membro.nome);
+                data.push(Math.min(progresso, 100));
+                descricao += `${membro.nome}: ${progressoFormatado}%\n`;
+            });
+            
+            // Adicionar descrição textual para acessibilidade
+            const descricaoElement = document.createElement('div');
+            descricaoElement.className = 'sr-only';
+            descricaoElement.id = 'chart-progresso-desc';
+            descricaoElement.textContent = descricao;
+            ctx.parentNode.appendChild(descricaoElement);
+            
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Progresso de Pagamento (%)',
+                        data: data,
+                        backgroundColor: 'rgba(102, 126, 234, 0.6)',
+                        borderColor: 'rgba(102, 126, 234, 1)',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+            
+            // Adicionar referência de acessibilidade
+            ctx.setAttribute('aria-describedby', 'chart-progresso-desc');
+        }
+        
+        function criarGraficoGastos() {
+            const ctx = document.getElementById('chartGastos');
+            if (!ctx) return;
+            
+            const financeiro = getFinanceiro();
+            const categorias = {};
+            
+            financeiro.gastos.forEach(gasto => {
+                const cat = gasto.categoria || 'Outro';
+                categorias[cat] = (categorias[cat] || 0) + parseFloat(gasto.valor || 0);
+            });
+            
+            const labels = Object.keys(categorias);
+            const data = Object.values(categorias);
+            
+            new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#FF6384',
+                            '#36A2EB',
+                            '#FFCE56',
+                            '#4BC0C0',
+                            '#9966FF',
+                            '#FF9F40'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        function criarGraficoCaixa() {
+            const ctx = document.getElementById('chartCaixa');
+            if (!ctx) return;
+            
+            const financeiro = getFinanceiro();
+            const meses = [];
+            const saldos = [];
+            
+            // Últimos 12 meses
+            for (let i = 11; i >= 0; i--) {
+                const data = new Date();
+                data.setMonth(data.getMonth() - i);
+                const mes = data.toLocaleDateString('pt-PT', { month: 'short', year: '2-digit' });
+                
+                // Calcular saldo até este mês
+                let saldo = 0;
+                financeiro.caixa.forEach(entry => {
+                    const entryDate = new Date(entry.data);
+                    if (entryDate <= data) {
+                        saldo = parseFloat(entry.saldo);
+                    }
+                });
+                
+                meses.push(mes);
+                saldos.push(saldo);
+            }
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: meses,
+                    datasets: [{
+                        label: 'Saldo em Caixa (€)',
+                        data: saldos,
+                        borderColor: 'rgba(40, 167, 69, 1)',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Atualizar gráficos quando dados mudam
+        function atualizarGraficos() {
+            inicializarGraficos();
+        }
+        
+        // Inicializar
+        configurarNavegacaoAbas();
+        atualizarDashboard();
+        atualizarFinanceiro();
+        verificarBackupSemanal();
+        inicializarGraficos();
+
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker registered:', reg.scope))
+                    .catch(err => console.warn('Service Worker registration failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
