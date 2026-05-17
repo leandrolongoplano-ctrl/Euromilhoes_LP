@@ -1,0 +1,22 @@
+{
+  "name": "Gestão de Pagamentos - Grupo Euromilhões",
+  "short_name": "Euromilhões",
+  "description": "Gestão de pagamentos do grupo Euromilhões como aplicação web progressiva.",
+  "start_url": "Gestao_Pagamentos_Grupo.html",
+  "scope": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#667eea",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}
